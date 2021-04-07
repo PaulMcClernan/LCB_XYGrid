@@ -1,0 +1,55 @@
+Library: community.livecode.paulmcclernan.xygrid
+
+Type: widget
+
+Description: Widget
+
+author: Paul McClernan
+
+version: 0.1
+
+Name: mouseMove
+
+Type: message
+
+Name: gridMouseMove
+
+Type: message
+
+Name: gridMouseUp
+
+Type: message
+
+Name: mouseDown
+
+Type: message
+
+Name: mouseUp
+
+Type: message
+
+Name: mouseRelease
+
+Type: message
+
+Name: backgroundColor
+
+Type: property
+
+Name: hiliteColor
+
+Type: property
+
+Name: outerShadowColor
+
+Type: property
+
+Name: borderWidth
+
+Type: property
+
+Name: borderColor
+
+Type: property
+
+

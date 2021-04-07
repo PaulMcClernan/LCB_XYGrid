@@ -2,3 +2,6 @@
 OLD/._WidgetShell.lcb~
 ._XYGrid.lcb
 support/._defaultscript.livecodescript
+*.lcm
+manifest.xml
+community.livecode.paulmcclernan.xygrid.lci
