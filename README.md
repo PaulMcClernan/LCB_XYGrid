@@ -1,2 +1,2 @@
 # LCB_XYGrid
- XY Grid Widget
+ XY Cartesian Grid Widget
