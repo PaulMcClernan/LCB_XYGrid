@@ -94,7 +94,7 @@ metadata strokesColor.label   is "Stokes Color"
 public handler setBorderColor(in pColor as String) returns nothing
    -- log pColor
    put stringToColor(pColor) into mStrokesColor
-   log mStrokesColor
+   -- log mStrokesColor
    OnGeometryChanged()
    redraw all
 end handler
@@ -119,12 +119,21 @@ end handler
 variable mHorizRectList as List
 variable mVertRectList as List
 private variable mMaxValue as Number
-property maxValue get mMaxValue set setMaxValue
+property maxValue get getMaxValue set setMaxValue
 metadata maxValue.editor is "com.livecode.pi.number"
+metadata maxValue.default is "127"
+metadata maxValue.min is "0"
+
 public handler setMaxValue(in pMaxValue as Number) returns nothing
-   put pMaxValue into mMaxValue
+   if pMaxValue < 0 then
+      put 0 into pMaxValue
+   end if
+   put pMaxValue * 2 into mMaxValue
    OnGeometryChanged()
    redraw all
+end handler
+public handler getMaxValue() returns Number
+   return mMaxValue / 2
 end handler
 
 private variable mCircleSize as Number
@@ -135,59 +144,120 @@ public handler setCircleSize(in pCircleSize as Number) returns nothing
    OnGeometryChanged()
    redraw all
 end handler
+
+private variable mOnlyMouseDownMoves as Boolean
+property onlyMouseDownMoves get mOnlyMouseDownMoves set mOnlyMouseDownMoves
+metadata onlyMouseDownMoves.editor is "com.livecode.pi.boolean"
+
+private variable mSnapBackToZero as Boolean
+property snapBackToZero get mSnapBackToZero set mSnapBackToZero
+metadata snapBackToZero.editor is "com.livecode.pi.boolean"
+
+private variable mDrawLineToLoc as Boolean
+property drawLineToLoc get mDrawLineToLoc set mDrawLineToLoc
+metadata drawLineToLoc.editor is "com.livecode.pi.boolean"
+
 -----------------------------------------------------------------------------------------------  Mouse Handlers --------------------------------------------------------------------------------------
-public variable mMouseButtonDown as Boolean
+private variable mMouseButtonDown as Boolean
 
 public handler OnMouseUp()
+  put false into mMouseButtonDown
   post "mouseUp" with [the click button] --  to my script object with [the click button]
-  post "gridMouseUp" with [mLocalLoc[1] -(mMaxValue/2),(mLocalLoc[2] -(mMaxValue/2)) * -1] --  to my script object with [the click button]
+  if mOnlyMouseDownMoves then
+     if mSnapBackToZero then
+        repeat forever
+           if mLocalLoc[1] > (mMaxValue/2) then
+              put mLocalLoc[1] - 1 into mLocalLoc[1]
+              if mLocalLoc[1] < (mMaxValue/2) then
+                 put (mMaxValue/2) into mLocalLoc[1]
+              end if
+           end if
+           if mLocalLoc[2] > (mMaxValue/2) then
+               put mLocalLoc[2] - 1 into mLocalLoc[2]
+               if mLocalLoc[2] < (mMaxValue/2) then
+                  put (mMaxValue/2) into mLocalLoc[2]
+               end if
+            end if
+            if mLocalLoc[1] < (mMaxValue/2) then
+               put mLocalLoc[1] + 1 into mLocalLoc[1]
+               if mLocalLoc[1] > (mMaxValue/2) then
+                  put (mMaxValue/2) into mLocalLoc[1]
+               end if
+            end if
+            if mLocalLoc[2] < (mMaxValue/2) then
+               put mLocalLoc[2] + 1 into mLocalLoc[2]
+               if mLocalLoc[2] > (mMaxValue/2) then
+                  put (mMaxValue/2) into mLocalLoc[2]
+               end if
+            end if
+            redraw all
+             if mLocalLoc[1] = (mMaxValue/2) and mLocalLoc[2] = (mMaxValue/2) then
+                exit repeat
+             end if
+        end repeat
+     end if
+  end if
 end handler
 
 public handler OnMouseDown()
+   put true into mMouseButtonDown
+   variable tPosition as Point
+   setLocalGridCoordsFromLoc(the mouse position)
+   redraw all
    post "mouseDown" with [the click button] --- to my script object with [the click button]
+   post "gridMouseUp" with [mLocalLoc[1] -(mMaxValue/2),(mLocalLoc[2] -(mMaxValue/2)) * -1] --  to my script object with [the click button]
 end handler
 
 variable mLocalLoc as List
-public handler OnMouseMove()
-   variable tPosition as Point
-   put the mouse position into tPosition
+public handler setLocalGridCoordsFromLoc(in pPosition as Point) returns nothing
    variable tRectList as List
    variable tRectNum as Number
    variable tHoriz as optional Number
    variable tVert as optional Number
    variable tRect
    put my bounds into tRect
-   -- put getRectListSplitHorz(tRect,256) into tRectList
-   --- tRectList now contains 8 rect elements
-   repeat with tRectNum from 1 up to mMaxValue
+   repeat with tRectNum from 1 up to mMaxValue + 1
       put mHorizRectList[tRectNum] into tRect
-      if tPosition is within tRect then
-         put tRectNum into tHoriz
+      if pPosition is within tRect then
+         put tRectNum -1 into tHoriz
          exit repeat
       end if
-      -- stroke rectangle path of tRect on this canvas
    end repeat
    if tHoriz is not nothing then
       put tHoriz into mLocalLoc[1]
    end if
    put my bounds into tRect
-   -- put getRectListSplitVert(tRect,256) into tRectList
-   --- tRectList now contains 8 rect elements
-   repeat with tRectNum from 1 up to mMaxValue
+   repeat with tRectNum from 1 up to mMaxValue + 1
       put mVertRectList[tRectNum] into tRect
-      if tPosition is within tRect then
-         put tRectNum into tVert
+      if pPosition is within tRect then
+         put tRectNum -1 into tVert
          exit repeat
       end if
-      -- stroke rectangle path of tRect on this canvas
    end repeat
    if tVert is not nothing then
       put tVert into mLocalLoc[2]
    end if
-   redraw all
-   post "mouseMove" with [the x of tPosition, the y of tPosition]
-   post "gridMouseMove" with [mLocalLoc[1] -(mMaxValue/2),(mLocalLoc[2] -(mMaxValue/2)) * -1]
-   -- put [tHoriz,tVert] into mLocalLoc
+end handler
+
+public handler OnMouseMove()
+   if mOnlyMouseDownMoves is true and mMouseButtonDown is false then
+      -- do nothing
+   else
+      variable tPosition as Point
+      put the mouse position into tPosition
+      setLocalGridCoordsFromLoc(tPosition)
+      --variable tRoundedPosition as Point
+      -- put point [0,0] into tRoundedPosition
+      -- put the rounded of (the x of tPosition) into the x of tRoundedPosition
+      -- put the rounded of (the y of tPosition) into the y of tRoundedPosition
+      -- setLocalGridCoordsFromLoc(tRoundedPosition)
+
+      redraw all
+      post "mouseMove" with [the x of tPosition, the y of tPosition]
+      -- post "gridMouseMove" with [ the rounded of ( mLocalLoc[1] -(mMaxValue/2) ), the rounded of ( (mLocalLoc[2] -(mMaxValue/2)) * -1 )]
+      post "gridMouseMove" with [ mLocalLoc[1] -(mMaxValue/2), (mLocalLoc[2] -(mMaxValue/2)) * -1 ]
+
+   end if
 end handler
 
 public handler OnMouseCancel()
@@ -247,19 +317,18 @@ public handler OnCreate()
    variable tRect
    put [128,128] into mLocalLoc
    put 256 into mMaxValue
-   put getRectListSplitHorz(my bounds,mMaxValue) into mHorizRectList
-   put getRectListSplitVert(my bounds,mMaxValue) into mVertRectList
-   put (the width of (element 1 of mHorizRectList) * 10 ) into mCircleSize
-   put 0.5 into mBorderWidth
+   put getRectListSplitHorz(my bounds,mMaxValue+1) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxValue+1) into mVertRectList -- +1 is for the Zero position
+   put (the width of (element 1 of mHorizRectList) * 25 ) into mCircleSize
+   put 2 into mBorderWidth
    put the color of my foreground paint into mCircleColor
    put the color of my border paint into mStrokesColor
 end handler
 
 public handler OnGeometryChanged()
-   variable tRect
-   put my bounds into tRect
-   put getRectListSplitHorz(tRect,mMaxValue) into mHorizRectList
-   put getRectListSplitVert(tRect,mMaxValue) into mVertRectList
+   put [mMaxValue/2,mMaxValue/2] into mLocalLoc
+   put getRectListSplitHorz(my bounds,mMaxValue+1) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxValue+1) into mVertRectList -- +1 is for the Zero position
    redraw all
 end handler
 --------------------------------------------------------------------------------------------------------------
@@ -270,23 +339,28 @@ public handler OnPaint()
    variable tHoriz as optional Number
    variable tVert as optional Number
    variable tPath
+   -- Draw Cross Hair:
    set the stroke width of this canvas to mBorderWidth
    set the paint of this canvas to solid paint with mStrokesColor
-   -- log mStrokesColor
    put line path from point [my width / 2, 0] to point [my width / 2,my height] into tPath
    stroke tPath on this canvas
    put line path from point [0,my height / 2] to point [my width,my height/2] into tPath
    stroke tPath on this canvas
+   -- Draw Loc Marker:
    if mLocalLoc is not nothing then
       put (element 1 of mLocalLoc * ( my width / mMaxValue )) into tHoriz
       put (element 2 of mLocalLoc * ( my height / mMaxValue )) into tVert
+      if mDrawLineToLoc then
+         put line path from point [my width / 2, my height / 2] to point [tHoriz,tVert] into tPath
+         stroke tPath on this canvas
+      end if
       set the paint of this canvas to solid paint with mCircleColor
       put circle path centered at point [tHoriz,tVert] with radius mCircleSize into tPath
-      -- log mCircleColor
       fill tPath on this canvas
       set the paint of this canvas to solid paint with mStrokesColor
       stroke tPath on this canvas
    end if
+   -- Draw Outer Border:
    set the paint of this canvas to solid paint with mStrokesColor
    set the stroke width of this canvas to (mBorderWidth * 2)
    put my bounds into tRect

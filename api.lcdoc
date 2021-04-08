@@ -52,4 +52,8 @@ Name: borderColor
 
 Type: property
 
+Name: maxValue
+
+Type: property
+
 
