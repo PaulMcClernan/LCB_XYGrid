@@ -1,0 +1,142 @@
+/**
+
+Description:
+Widget
+
+Name: mouseMove
+
+Type: message
+
+Name: mouseDown
+
+Type: message
+
+Name: mouseUp
+
+Type: message
+
+Name: mouseRelease
+
+Type: message
+
+Name: backgroundColor
+
+Type: property
+
+Name: hiliteColor
+
+Type: property
+
+Name: outerShadowColor
+
+Type: property
+
+*/
+widget community.livecode.paulmcclernan.testwidget
+
+-- dependancy declarations
+use com.livecode.canvas
+use com.livecode.string
+use com.livecode.char
+use com.livecode.widget
+use com.livecode.engine
+use com.livecode.library.widgetutils
+
+-- adding metadata to ensure the extension displays correctly in livecode
+metadata title is "256 xy feild"
+metadata author is "Paul McClernan"
+metadata version is "0.1"
+metadata preferredSize is "600,100"
+-- metadata svgicon is ""
+-----------------------------------------------------------------------------------------------  Mouse Handlers --------------------------------------------------------------------------------------
+public variable mPianoMouseButtonDown as Boolean
+
+public handler OnMouseUp()
+  post "mouseUp" with [the click button] --  to my script object with [the click button]
+end handler
+
+public handler OnMouseDown()
+   post "mouseDown" with [the click button] --- to my script object with [the click button]
+end handler
+
+public handler OnMouseMove()
+   variable tPosition as Point
+   put the mouse position into tPosition
+   post "mouseMove" with [the x of tPosition, the y of tPosition]
+end handler
+
+public handler OnMouseCancel()
+   -- put false into mPianoMouseButtonDown
+   OnMouseUp()
+end handler
+--public handler OnMouseCancelHover()
+--   put false into mPianoMouseButtonDown
+--   OnMouseUp()
+--end handler
+--public handler OnMouseEnter()
+   --variable tMouseButtonState as String
+   --execute script "global gPianoMouseButtonDown ; return gPianoMouseButtonDown"
+   --execute script "return mouse()"
+   -- log the result
+   --if the result is "up" then
+      --put false into mPianoMouseButtonDown
+       -- OnMouseUp()
+   --else
+       --put true into mPianoMouseButtonDown
+       -- OnMouseDown()
+   --end if
+--end handler
+
+--- Monte's point-within-path handler:
+public handler hitTestPath(in pPoint as Point, in pPath as Path, in pStrokeWidth as Number, in pWithin as Boolean) returns Boolean
+	-- set pWithin true and pStrokeWidth to 0 if you want to hit-test the filled path
+	-- set pWithin false and pStrokeWidth != 0 if you want hit-test the stroked path (i.e. just the outline)
+	-- set pWithin true and pStrokeWidth != 0 if you want to hit-test the stroked and filled path.
+	------------------------------------------------------------------------------------------------------------------------------
+	-- create a 1 x 1 canvas
+	variable tCanvas as Canvas
+	put a new canvas with size [1,1] into tCanvas
+	-- ensure we either get pixels drawn with our color or not drawn
+	set the antialias of tCanvas to false
+	-- translate the path by the point
+	translate pPath by [-(the x of pPoint), -(the y of pPoint)]
+	-- draw the path to the canvas
+	set the paint of tCanvas to solid paint with color [0.0, 0.0, 0.0, 1.0]
+	if pStrokeWidth is 0 and not pWithin then
+		put 1 into pStrokeWidth
+	end if
+	if pWithin then
+		fill pPath on tCanvas
+	end if
+	if pStrokeWidth > 0 then
+		set the stroke width of tCanvas to pStrokeWidth
+		stroke pPath on tCanvas
+	end if
+	-- get the pixel data of the canvas
+	variable tData as Data
+	put the pixel data of tCanvas into tData
+	-- return whether pixel is opaque
+	return the first byte of tData is the byte with code 255
+end handler
+-----------------------------------------------------------------------------------------------  Creating & Drawing --------------------------------------------------------------------------------------
+--- called when widget is created
+public handler OnCreate()
+
+end handler
+
+public handler OnGeometryChanged()
+    redraw all
+end handler
+--------------------------------------------------------------------------------------------------------------
+-- called whenever LiveCode needs to redraw the widget
+public handler OnPaint()
+
+end handler
+
+-- this handler is called when a card containg the widget is opened
+public handler OnOpen()
+   OnGeometryChanged()
+   redraw all
+end handler
+
+end widget
